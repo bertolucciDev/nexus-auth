@@ -102,18 +102,10 @@ function usernameToUuid(username: string): string {
 
 function profileForName(name: string, uuid?: string): Profile {
   var id = uuid || usernameToUuid(name);
-  const texturesValue = Buffer.from(JSON.stringify({
-    timestamp: Date.now(),
-    profileId: id,
-    name: name,
-    textures: {},
-  })).toString('base64');
   return {
     id,
     name,
-    properties: [
-      { name: 'textures', value: texturesValue },
-    ],
+    properties: [],
   };
 }
 

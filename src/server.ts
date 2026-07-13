@@ -201,29 +201,40 @@ app.post('/api/yggdrasil/authserver/signout', (_req: any, res: any) => {
 
 // POST /api/yggdrasil/sessionserver/session/minecraft/join
 // TLauncher-style: aceita qualquer join request sem validar token.
-// O authlib-injector intercepta a chamada do cliente MAS nem sempre o
-// token está no nosso store (ex: offline sessions criadas pelo CmlLib).
-// Enquanto o selectedProfile tiver id + name válidos, criamos o record.
+// Suporta dois formatos de body:
+//   Moderno (1.20+): { accessToken, profileId, serverId }
+//   Legado (1.8-1.19): { accessToken, selectedProfile: { id, name }, serverId }
 app.post('/api/yggdrasil/sessionserver/session/minecraft/join', (req: any, res: any) => {
-  const { selectedProfile, serverId, accessToken } = req.body || {};
-  if (!selectedProfile?.name || !selectedProfile?.id) {
-    return res.status(400).json({ error: 'Missing selectedProfile' });
+  const { selectedProfile, profileId, serverId, accessToken } = req.body || {};
+  let uuid: string, name: string;
+  if (selectedProfile?.id && selectedProfile?.name) {
+    // Formato legado
+    uuid = selectedProfile.id.replace(/-/g, '');
+    name = selectedProfile.name;
+  } else if (profileId) {
+    // Formato moderno (1.20+) — usa o UUID pra derivar o nome da session
+    uuid = profileId.replace(/-/g, '');
+    // Tenta encontrar o nome pelo token store ou usernameIndex
+    name = '';
+    if (accessToken) {
+      const stored = accessTokens.get(hashToken(accessToken));
+      if (stored) name = stored.ownerName;
+    }
+    // Fallback: deriva nome do UUID (só pra ter algo válido)
+    if (!name) name = 'Player';
+  } else {
+    return res.status(400).json({ error: 'Missing selectedProfile or profileId' });
   }
-  const uuid = selectedProfile.id.replace(/-/g, '');
-  const name = selectedProfile.name;
-  // Se tiver um accessToken conhecido, atualiza o usernameIndex (cache)
   if (accessToken) {
     const hash = hashToken(accessToken);
     if (!accessTokens.has(hash)) {
-      // Cria entrada no token store pra não ficar órfão
       accessTokens.set(hash, { ownerName: name, ownerUuid: uuid, clientToken: '', createdAt: Date.now() });
     }
     usernameIndex.set(name, { uuid, accessToken });
   }
-  // Record the (player, serverId) so we can answer hasJoined for that LAN server
   const key = `${uuid}:${serverId}`;
   sessionJoins.set(key, { name, uuid, serverId, joinedAt: Date.now() });
-  console.log(`[auth] join: ${name} -> serverId=${serverId}`);
+  console.log(`[auth] join: ${name} uuid=${uuid} -> serverId=${serverId}`);
   return res.status(204).end();
 });
 

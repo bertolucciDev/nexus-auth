@@ -268,8 +268,20 @@ app.get('/api/yggdrasil/sessionserver/session/minecraft/profile/:uuid', (req: an
       return res.json(profileForName(v.ownerName, uuidNoDash));
     }
   }
-  // Offline fallback: return a generic profile so Minecraft doesn't complain
-  // about not being able to contact auth server. Skin will just be default.
+  // Secondary lookup in sessionJoins (join records survive longer than token
+  // store because clients keep joining). If found, return the real name.
+  for (const [, v] of sessionJoins) {
+    if (v.uuid === uuidNoDash) {
+      return res.json(profileForName(v.name, uuidNoDash));
+    }
+  }
+  // Last resort: derive name from UUID via accessTokens (backup of last resort)
+  for (const [, v] of accessTokens) {
+    if (v.ownerUuid === uuidNoDash) {
+      return res.json(profileForName(v.ownerName, uuidNoDash));
+    }
+  }
+  // Absolute fallback: use a non-null name so Minecraft doesn't get confused
   return res.json(profileForName('Player', uuidNoDash));
 });
 

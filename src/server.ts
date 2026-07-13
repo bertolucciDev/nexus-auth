@@ -230,13 +230,13 @@ app.post('/api/yggdrasil/sessionserver/session/minecraft/join', (req: any, res: 
 
 const sessionJoins = new Map<string, { name: string; uuid: string; serverId: string; joinedAt: number }>();
 
-// POST /api/yggdrasil/sessionserver/session/minecraft/hasJoined
-// Body: { username, serverId }
-app.post('/api/yggdrasil/sessionserver/session/minecraft/hasJoined', (req: any, res: any) => {
-  const { username, serverId } = req.body || {};
+// Shared handler for hasJoined (used by both GET and POST)
+function handleHasJoined(req: any, res: any) {
+  const username = req.body?.username || (req.query?.username as string);
+  const serverId = req.body?.serverId || (req.query?.serverId as string);
   if (!username || !serverId) return res.status(400).json({ error: 'Missing fields' });
   // Find join record by (username, serverId)
-  for (const [key, v] of sessionJoins) {
+  for (const [, v] of sessionJoins) {
     if (v.name === username && v.serverId === serverId) {
       console.log(`[auth] hasJoined: ${username} serverId=${serverId} -> YES`);
       return res.json([{
@@ -246,17 +246,18 @@ app.post('/api/yggdrasil/sessionserver/session/minecraft/hasJoined', (req: any, 
       }]);
     }
   }
-  // TLauncher-like fallback: if user authenticated via this auth server and we have a token for them,
-  // treat them as joined regardless of serverId (less strict).
-  // For LAN, this means: "if you logged in at all on this auth server, hasJoined succeeds"
-  // which is fine since the LAN server is private and running on a known peer IP.
+  // TLauncher-like fallback
   console.log(`[auth] hasJoined: ${username} serverId=${serverId} -> FALLBACK YES`);
   return res.json([{
     id: usernameToUuid(username),
     name: username,
     properties: profileForName(username).properties,
   }]);
-});
+}
+
+// Both POST (body) and GET (query params) — authlib-injector uses GET
+app.post('/api/yggdrasil/sessionserver/session/minecraft/hasJoined', handleHasJoined);
+app.get('/api/yggdrasil/sessionserver/session/minecraft/hasJoined', handleHasJoined);
 
 // GET /api/yggdrasil/sessionserver/session/minecraft/profile/<uuid>
 app.get('/api/yggdrasil/sessionserver/session/minecraft/profile/:uuid', (req: any, res: any) => {

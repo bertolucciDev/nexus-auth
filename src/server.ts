@@ -262,13 +262,15 @@ app.get('/api/yggdrasil/sessionserver/session/minecraft/hasJoined', handleHasJoi
 // GET /api/yggdrasil/sessionserver/session/minecraft/profile/<uuid>
 app.get('/api/yggdrasil/sessionserver/session/minecraft/profile/:uuid', (req: any, res: any) => {
   const uuidNoDash = (req.params.uuid || '').replace(/-/g, '');
-  // Look up user by UUID in our token store
+  // Look up user by UUID in our token store (set during authenticate)
   for (const [, v] of accessTokens) {
     if (v.ownerUuid === uuidNoDash) {
       return res.json(profileForName(v.ownerName, uuidNoDash));
     }
   }
-  return res.status(404).json({ error: 'Not found' });
+  // Offline fallback: return a generic profile so Minecraft doesn't complain
+  // about not being able to contact auth server. Skin will just be default.
+  return res.json(profileForName('Player', uuidNoDash));
 });
 
 // ----- YAML config export for authlib-injector compatibility -----

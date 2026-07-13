@@ -239,20 +239,20 @@ function handleHasJoined(req: any, res: any) {
   for (const [, v] of sessionJoins) {
     if (v.name === username && v.serverId === serverId) {
       console.log(`[auth] hasJoined: ${username} serverId=${serverId} -> YES`);
-      return res.json([{
+      return res.json({
         id: usernameToUuid(username),
         name: username,
         properties: profileForName(username).properties,
-      }]);
+      });
     }
   }
-  // TLauncher-like fallback
+  // TLauncher-like fallback — return SINGLE object, not array
   console.log(`[auth] hasJoined: ${username} serverId=${serverId} -> FALLBACK YES`);
-  return res.json([{
+  return res.json({
     id: usernameToUuid(username),
     name: username,
     properties: profileForName(username).properties,
-  }]);
+  });
 }
 
 // Both POST (body) and GET (query params) — authlib-injector uses GET

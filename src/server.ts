@@ -285,6 +285,18 @@ app.get('/yggdrasil', (_req: any, res: any) => {
       'feature.no-login-plugin': true,
       'feature.accounts-type': ['offline'],
     },
+    authentication: {
+      endpoint: `${baseUrl}/api/yggdrasil/authserver`,
+      endpoints: {
+        Minecraft: `${baseUrl}/api/yggdrasil/authserver`
+      }
+    },
+    session: {
+      endpoint: `${baseUrl}/api/yggdrasil/sessionserver`,
+      endpoints: {
+        Minecraft: `${baseUrl}/api/yggdrasil/sessionserver`
+      }
+    },
     skinDomains: [`${baseUrl}/skins`],
     sessionPublicKey: '',  // not used with offline auth
   });

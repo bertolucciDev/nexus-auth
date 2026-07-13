@@ -71,7 +71,7 @@ app.get('/health', (_req, res) => {
 interface Profile {
   id: string;       // uuid without dashes for minecraft
   name: string;     // username
-  properties?: Array<{ name: string; value: string; signature: string }>;
+  properties?: Array<{ name: string; value: string; signature?: string }>;
 }
 
 // In-memory token store  (good enough for LAN/peer-to-peer):
@@ -112,7 +112,7 @@ function profileForName(name: string, uuid?: string): Profile {
     id,
     name,
     properties: [
-      { name: 'textures', value: texturesValue, signature: 'sign' },
+      { name: 'textures', value: texturesValue },
     ],
   };
 }
